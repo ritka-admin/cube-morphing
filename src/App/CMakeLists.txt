@@ -5,7 +5,12 @@ set(SRCS
 
     Shaders/diffuse.fs
     Shaders/diffuse.vs
+    Shaders/cube.fs
+    Shaders/cube.vs
     Textures/voronoi.png
+#    Models/chess.glb
+    Models/Cube.gltf
+    Models/Cube.bin
 
     resources.qrc
 )
@@ -19,4 +24,5 @@ target_link_libraries(demo-app
         Qt5::Widgets
         FGL::Base
         thirdparty::tinygltf
+        thirdparty::glm
 )

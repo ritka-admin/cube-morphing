@@ -11,6 +11,15 @@
 
 #include <functional>
 #include <memory>
+// ------------------------------
+#include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <tinygltf/tiny_gltf.h>
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
 
 class Window final : public fgl::GLWidget
 {
@@ -49,6 +58,8 @@ signals:
 
 private:
 	GLint mvpUniform_ = -1;
+	GLint sun_position_ = -1;
+	GLint sun_color_ = -1;
 
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
 	QOpenGLBuffer ibo_{QOpenGLBuffer::Type::IndexBuffer};
@@ -69,4 +80,22 @@ private:
 	} ui_;
 
 	bool animated_ = true;
+
+	//----------------------------------------------------
+	tinygltf::Model model;
+	tinygltf::TinyGLTF loader;
+	std::string err;
+	std::string warn;
+	std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos;
+
+	void displayLoop();
+	glm::mat4 genMVP(glm::mat4 view_mat, glm::mat4 model_mat, float fov, int w, int h);
+	glm::mat4 genView(glm::vec3 pos, glm::vec3 lookat);
+	void drawModel();
+	void drawModelNodes(tinygltf::Node &node);
+	void drawMesh(tinygltf::Mesh &mesh);
+	void bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh);
+	std::pair<GLuint, std::map<int, GLuint>> bindModel();
+	void bindModelNodes(std::map<int, GLuint>& vbos, tinygltf::Node &node);
+	bool loadModel(const char *filename);
 };
