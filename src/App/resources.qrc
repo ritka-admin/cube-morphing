@@ -8,6 +8,7 @@
         <file>Textures/voronoi.png</file>
         <file>Textures/Cube_BaseColor.png</file>
         <file>Textures/Cube_MetallicRoughness.png</file>
+        <file>Textures/oxy.png</file>
     </qresource>
     <qresource prefix="/">
         <file>Shaders/diffuse.fs</file>

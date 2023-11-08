@@ -80,6 +80,8 @@ void Window::onInit()
 	loadModel("Models/Cube.gltf");
 	vaoAndEbos = bindModel();
 
+	// TODO: bind textures
+
 	// ---------------------------------------------
 
 	// Create IBO
@@ -88,9 +90,9 @@ void Window::onInit()
 //	ibo_.setUsagePattern(QOpenGLBuffer::StaticDraw);
 //	ibo_.allocate(indices.data(), static_cast<int>(indices.size() * sizeof(GLuint)));
 
-//	texture_ = std::make_unique<QOpenGLTexture>(QImage(":/Textures/voronoi.png"));
-//	texture_->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-//	texture_->setWrapMode(QOpenGLTexture::WrapMode::Repeat);
+	texture_ = std::make_unique<QOpenGLTexture>(QImage(":/Textures/oxy.png"));
+	texture_->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+	texture_->setWrapMode(QOpenGLTexture::WrapMode::Repeat);
 
 	// Bind attributes
 	program_->bind();
@@ -143,19 +145,19 @@ void Window::onRender()
 	program_->bind();
 	vao_.bind();
 
-	displayLoop();
 	// Update uniform value
 //	program_->setUniformValue(mvpUniform_, mvp);
 
 	// Activate texture unit and bind texture
-//	glActiveTexture(GL_TEXTURE0);
-//	texture_->bind();
+	glActiveTexture(GL_TEXTURE0);
+	texture_->bind();
 
+	displayLoop();
 	// Draw
 //	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
 
 	// Release VAO and shader program
-//	texture_->release();
+	texture_->release();
 	vao_.release();
 	program_->release();
 
@@ -345,50 +347,6 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 									  byteStride, BUFFER_OFFSET(accessor.byteOffset));
 			} else
 				std::cout << "vaa missing: " << attrib.first << std::endl;
-		}
-
-		if (model.textures.size() > 0) {
-			// fixme: Use material's baseColor
-			tinygltf::Texture &tex = model.textures[0];
-
-			if (tex.source > -1) {
-
-				GLuint texid;
-				glGenTextures(1, &texid);
-
-				tinygltf::Image &image = model.images[tex.source];
-
-				glBindTexture(GL_TEXTURE_2D, texid);
-				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-				GLenum format = GL_RGBA;
-
-				if (image.component == 1) {
-					format = GL_RED;
-				} else if (image.component == 2) {
-					format = GL_RG;
-				} else if (image.component == 3) {
-					format = GL_RGB;
-				} else {
-					// ???
-				}
-
-				GLenum type = GL_UNSIGNED_BYTE;
-				if (image.bits == 8) {
-					// ok
-				} else if (image.bits == 16) {
-					type = GL_UNSIGNED_SHORT;
-				} else {
-					// ???
-				}
-
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-							 format, type, &image.image.at(0));
-			}
 		}
 	}
 }
