@@ -15,6 +15,7 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <tinygltf/tiny_gltf.h>
 
@@ -58,16 +59,14 @@ signals:
 
 private:
 	GLint mvpUniform_ = -1;
-	GLint sun_position_ = -1;
-	GLint sun_color_ = -1;
 
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
 	QOpenGLBuffer ibo_{QOpenGLBuffer::Type::IndexBuffer};
 	QOpenGLVertexArrayObject vao_;
 
-	QMatrix4x4 model_;
-	QMatrix4x4 view_;
-	QMatrix4x4 projection_;
+	glm::mat4 model_;
+	glm::mat4 view_;
+	glm::mat4 projection_;
 
 	std::unique_ptr<QOpenGLTexture> texture_;
 	std::unique_ptr<QOpenGLShaderProgram> program_;
@@ -79,7 +78,7 @@ private:
 		size_t fps = 0;
 	} ui_;
 
-	bool animated_ = true;
+	bool animated_ = false;
 
 	//----------------------------------------------------
 	tinygltf::Model model;

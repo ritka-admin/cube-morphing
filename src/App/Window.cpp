@@ -5,6 +5,7 @@
 #include <QOpenGLShaderProgram>
 #include <QVBoxLayout>
 #include <QScreen>
+#include <QtMath>
 
 #include <array>
 
@@ -77,10 +78,8 @@ void Window::onInit()
 
 	// ----------------------------------------------------------------
 
-	loadModel("Models/Cube.gltf");
+	loadModel("Models/Cube.glb");
 	vaoAndEbos = bindModel();
-
-	// TODO: bind textures
 
 	// ---------------------------------------------
 
@@ -107,10 +106,11 @@ void Window::onInit()
 //	program_->enableAttributeArray(2);
 //	program_->setAttributeBuffer(2, GL_FLOAT, static_cast<int>(5 * sizeof(GLfloat)), 2,
 //								 static_cast<int>(7 * sizeof(GLfloat)));
+	// Bind attributes
 
 	mvpUniform_ = program_->uniformLocation("MVP");
-	sun_position_ = program_->uniformLocation("sun_position");
-	sun_color_ = program_->uniformLocation("sun_color");
+//	sun_position_ = program_->uniformLocation("sun_position");
+//	sun_color_ = program_->uniformLocation("sun_color");
 
 	// Release all
 	program_->release();
@@ -136,9 +136,9 @@ void Window::onRender()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Calculate MVP matrix
-//	model_.setToIdentity();
-//	model_.translate(0, 0, -2);
-//	view_.setToIdentity();
+	model_ = glm::mat4(1.0f);
+	view_ = glm::mat4(1.0f);
+	projection_ = glm::mat4(1.0f);
 //	const auto mvp = projection_ * view_ * model_;
 
 	// Bind VAO and shader program
@@ -152,9 +152,8 @@ void Window::onRender()
 	glActiveTexture(GL_TEXTURE0);
 	texture_->bind();
 
-	displayLoop();
 	// Draw
-//	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+	displayLoop();
 
 	// Release VAO and shader program
 	texture_->release();
@@ -172,16 +171,16 @@ void Window::onRender()
 
 void Window::onResize(const size_t width, const size_t height)
 {
-	// Configure viewport
-	glViewport(0, 0, static_cast<GLint>(width), static_cast<GLint>(height));
-
-	// Configure matrix
-	const auto aspect = static_cast<float>(width) / static_cast<float>(height);
-	const auto zNear = 0.1f;
-	const auto zFar = 100.0f;
-	const auto fov = 60.0f;
-	projection_.setToIdentity();
-	projection_.perspective(fov, aspect, zNear, zFar);
+//	// Configure viewport
+//	glViewport(0, 0, static_cast<GLint>(width), static_cast<GLint>(height));
+//
+//	// Configure matrix
+//	const auto aspect = static_cast<float>(width) / static_cast<float>(height);
+//	const auto zNear = 0.1f;
+//	const auto zFar = 100.0f;
+//	const auto fov = 60.0f;
+//	projection_.setToIdentity();
+//	projection_.perspective(fov, aspect, zNear, zFar);
 }
 
 Window::PerfomanceMetricsGuard::PerfomanceMetricsGuard(std::function<void()> callback)
@@ -213,7 +212,7 @@ auto Window::captureMetrics() -> PerfomanceMetricsGuard
 }
 
 bool Window::loadModel(const char *filename) {
-	bool res = loader.LoadASCIIFromFile(&this->model, &err, &warn, filename);
+	bool res = loader.LoadBinaryFromFile(&this->model, &err, &warn, filename);
 	if (!warn.empty()) {
 		std::cout << "WARN: " << warn << std::endl;
 	}
@@ -244,9 +243,6 @@ void Window::bindModelNodes(std::map<int, GLuint>& vbos,
 
 std::pair<GLuint, std::map<int, GLuint>> Window::bindModel() {
 	std::map<int, GLuint> vbos;
-	//		GLuint vao;
-	//		glGenVertexArrays(1, &vao);
-	//		glBindVertexArray(vao);
 	vao_.bind();
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
@@ -256,7 +252,6 @@ std::pair<GLuint, std::map<int, GLuint>> Window::bindModel() {
 	}
 
 	vao_.release();
-	//		glBindVertexArray(0);
 	// cleanup vbos but do not delete index buffers yet
 	for (auto it = vbos.cbegin(); it != vbos.cend();) {
 		// ----------------------------------------
@@ -279,17 +274,8 @@ std::pair<GLuint, std::map<int, GLuint>> Window::bindModel() {
 void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 	for (size_t i = 0; i < model.bufferViews.size(); ++i) {
 		const tinygltf::BufferView &bufferView = model.bufferViews[i];
-
-		// ------------------------------------------------------
-//		int target = bufferView.target == 0 ? GL_ELEMENT_ARRAY_BUFFER : bufferView.target;
-		//			glBindBuffer(target, vbos[i]);
-		//			glBufferData(target, bufferView.byteLength,
-		//						 &model.bufferViews.at(0) + bufferView.byteOffset, GL_STATIC_DRAW);
-		// ------------------------------------------------------
-
-		if (bufferView.target == 0) {  // TODO impl drawarrays
-//		if (target == 0) {
-			std::cout << "WARN: bufferView.target is zero" << std::endl;
+		if (bufferView.target == 0) {
+//			std::cout << "WARN: bufferView.target is zero" << std::endl;
 			continue;  // Unsupported bufferView.
 					 /*
                    From spec2.0 readme:
@@ -302,17 +288,11 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 		}
 
 		const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
-					std::cout << "bufferview.target " << bufferView.target << std::endl;
-//		std::cout << "bufferview.target " << target << std::endl;
 
 		GLuint vbo;
 		glGenBuffers(1, &vbo);
 		vbos[i] = vbo;
 		glBindBuffer(bufferView.target, vbo);
-
-		std::cout << "buffer.data.size = " << buffer.data.size()
-				  << ", bufferview.byteOffset = " << bufferView.byteOffset
-				  << std::endl;
 
 		glBufferData(bufferView.target, bufferView.byteLength,
 					 &buffer.data.at(0) + bufferView.byteOffset, GL_STATIC_DRAW);
@@ -375,7 +355,6 @@ void Window::drawModelNodes(tinygltf::Node &node) {
 	}
 }
 void Window::drawModel() {
-	//		glBindVertexArray(vaoAndEbos.first);
 	vao_.bind();
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
@@ -384,94 +363,47 @@ void Window::drawModel() {
 	}
 
 	vao_.release();
-//			glBindVertexArray(0);
-}
-
-glm::mat4 Window::genView(glm::vec3 pos, glm::vec3 lookat) {
-	// Camera matrix
-	glm::mat4 view = glm::lookAt(
-		pos,                // Camera in World Space
-		lookat,             // and looks at the origin
-		glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
-	);
-
-	return view;
-}
-
-glm::mat4 Window::genMVP(glm::mat4 view_mat, glm::mat4 model_mat, float fov, int w,
-				 int h) {
-	glm::mat4 Projection =
-		glm::perspective(glm::radians(fov), (float)w / (float)h, 0.01f, 1000.0f);
-
-	// Or, for an ortho camera :
-//	 glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f);
-	// // In world coordinates
-
-	glm::mat4 mvp = Projection * view_mat * model_mat;
-
-	return mvp;
 }
 
 void Window::displayLoop() {
-	//		Shaders shader = Shaders();
-	//		glUseProgram(shader.pid);
-
-	// ----------------------------------
-	glUseProgram(program_->programId());
-	// ----------------------------------
-
-	// grab uniforms to modify
-	//		GLuint MVP_u = glGetUniformLocation(program_->programId(), "MVP");
-	//		GLuint sun_position_u = glGetUniformLocation(program_->programId(), "sun_position");
-	//		GLuint sun_color_u = glGetUniformLocation(program_->programId(), "sun_color");
-
-	//		tinygltf::Model model;
-	//		if (!loadModel(model, filename.c_str())) return;
-
-	//		std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos = bindModel(model);
-	// dbgModel(model); return;
-
 	// Model matrix : an identity matrix (model will be at the origin)
-	glm::mat4 model_mat = glm::mat4(1.0f);
 	glm::mat4 model_rot = glm::mat4(1.0f);
-	glm::vec3 model_pos = glm::vec3(-3, 0, -3);
+	glm::vec3 model_pos = glm::vec3(0, 0, 0);
+//	QVector3D model_pos = QVector3D(-3, 0, -3);		// Model in World Space
 
-	// generate a camera view, based on eye-position and lookAt world-position
-	glm::mat4 view_mat = genView(glm::vec3(2, 2, 20), model_pos);
-
-	glm::vec3 sun_position = glm::vec3(3.0, 10.0, -5.0);
-	glm::vec3 sun_color = glm::vec3(1.0);
-
-	//		while (!this->close()) {
-	//			this->resize();
-
-	glClearColor(0.2, 0.2, 0.2, 1.0);
+	glClearColor(0.2, 0.2, 0.2, 1.0);		// background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glm::mat4 trans =
-		glm::translate(glm::mat4(1.0f), model_pos);  // reposition model
-	model_rot = glm::rotate(model_rot, glm::radians(0.8f),
-							glm::vec3(0, 1, 0));  // rotate model on y axis
-	model_mat = trans * model_rot;
+//	model_.translate(model_pos);
+//	model_.rotate(qDegreesToRadians(0.8f), QVector3D(0, 1, 0));
+	glm::mat4 trans = glm::translate(glm::mat4(1.0f), model_pos);  // reposition model
+	model_ = trans * model_;
+	model_rot = glm::rotate(model_rot, glm::radians(0.8f), glm::vec3(0, 1, 0));  // rotate model on y axis
+	model_ = model_ * model_rot;
+
+	//	 generate a camera view, based on eye-position and lookAt world-position
+//	view_.lookAt(
+//		QVector3D(2, 2, 10),    // Camera in World Space
+//		model_pos,              // Model in world space
+//		QVector3D(0, -1, 0)     // 1 instead of -1 --- upside down
+//	);
+
+	view_ = glm::lookAt(
+		glm::vec3(-2, 0, 4),                // Camera in World Space
+		model_pos,             			// and looks at the origin
+		glm::vec3(0, -1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+	);
 
 	// build a model-view-projection
 	GLint w, h;
-	//			glfwGetWindowSize(window.window, &w, &h);
 	h = this->size().height();
 	w = this->size().width();
-	glm::mat4 mvp = genMVP(view_mat, model_mat, 45.0f, w, h);
-	glUniformMatrix4fv(mvpUniform_, 1, GL_FALSE, &mvp[0][0]);
 
-	glUniform3fv(sun_position_, 1, &sun_position[0]);
-	glUniform3fv(sun_color_, 1, &sun_color[0]);
+//	projection_.perspective(qDegreesToRadians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
+
+	projection_ = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
+	const auto mvp = projection_ * view_ * model_;
+	program_->setUniformValue(mvpUniform_, QMatrix4x4(glm::value_ptr(mvp)).transposed());
 
 	drawModel();
-	update();
-
-	//			glSwapBuffers(window.window);		// TODO
-	//			context()->swapBuffers();
-	//			glfwPollEvents();
-	//		}
-
-	//		glDeleteVertexArrays(1, &vaoAndEbos.first);
 }
