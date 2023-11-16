@@ -33,6 +33,9 @@ public: // fgl::GLWidget
 	void onInit() override;
 	void onRender() override;
 	void onResize(size_t width, size_t height) override;
+	void mousePressEvent(QMouseEvent* got_event) override;
+	void mouseMoveEvent(QMouseEvent* got_event) override;
+	void mouseReleaseEvent(QMouseEvent* got_event) override;
 
 private:
 	class PerfomanceMetricsGuard final
@@ -80,6 +83,14 @@ private:
 
 	bool animated_ = false;
 
+	bool dragged_ = false;
+	QPoint mouseStartPos_;
+	glm::vec3 cameraPos_;
+	glm::vec3 cameraFront_;
+	bool first_touch;
+	float yawAngle_;
+	float pitchAngle_;
+
 	//----------------------------------------------------
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -88,8 +99,6 @@ private:
 	std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos;
 
 	void displayLoop();
-	glm::mat4 genMVP(glm::mat4 view_mat, glm::mat4 model_mat, float fov, int w, int h);
-	glm::mat4 genView(glm::vec3 pos, glm::vec3 lookat);
 	void drawModel();
 	void drawModelNodes(tinygltf::Node &node);
 	void drawMesh(tinygltf::Mesh &mesh);

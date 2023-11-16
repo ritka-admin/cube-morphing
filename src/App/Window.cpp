@@ -126,6 +126,13 @@ void Window::onInit()
 
 	// Clear all FBO buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Set initial parameters
+	cameraPos_ = glm::vec3(0, -2, 3);
+	cameraFront_ = glm::vec3(0, 0, -3);
+	yawAngle_ = -90.;
+	pitchAngle_ = 0.;
+	first_touch = true;
 }
 
 void Window::onRender()
@@ -181,6 +188,42 @@ void Window::onResize(const size_t width, const size_t height)
 //	const auto fov = 60.0f;
 //	projection_.setToIdentity();
 //	projection_.perspective(fov, aspect, zNear, zFar);
+}
+
+void Window::mousePressEvent(QMouseEvent * got_event) {
+	mouseStartPos_ = got_event->pos();
+	dragged_ = true;
+}
+
+void Window::mouseMoveEvent(QMouseEvent * got_event) {
+	if (dragged_) {
+
+		auto x_diff = got_event->pos().x() - mouseStartPos_.x();
+		auto y_diff = mouseStartPos_.y() - got_event->pos().y();
+
+		yawAngle_ += x_diff * 0.1f;
+		pitchAngle_ += y_diff * 0.1f;
+
+		std::cout << yawAngle_ << " " << pitchAngle_ << std::endl;
+//		if(pitchAngle_ > 89.0f)
+//			pitchAngle_ = 89.0f;
+//		if(pitchAngle_ < -89.0f)
+//			pitchAngle_ = -89.0f;
+
+		cameraFront_.x = glm::cos(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
+		cameraFront_.y = glm::sin(glm::radians(pitchAngle_));
+		cameraFront_.z = glm::sin(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
+
+		cameraFront_ = glm::normalize(cameraFront_);
+
+		mouseStartPos_ = got_event->pos();
+
+		update();
+	}
+}
+
+void Window::mouseReleaseEvent([[maybe_unused]] QMouseEvent * got_event) {
+	dragged_ = false;
 }
 
 Window::PerfomanceMetricsGuard::PerfomanceMetricsGuard(std::function<void()> callback)
@@ -368,40 +411,28 @@ void Window::drawModel() {
 void Window::displayLoop() {
 	// Model matrix : an identity matrix (model will be at the origin)
 	glm::mat4 model_rot = glm::mat4(1.0f);
-	glm::vec3 model_pos = glm::vec3(0, 0, 0);
-//	QVector3D model_pos = QVector3D(-3, 0, -3);		// Model in World Space
+//	glm::vec3 model_pos = glm::vec3(0, 0, -3);
 
 	glClearColor(0.2, 0.2, 0.2, 1.0);		// background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//	model_.translate(model_pos);
-//	model_.rotate(qDegreesToRadians(0.8f), QVector3D(0, 1, 0));
-	glm::mat4 trans = glm::translate(glm::mat4(1.0f), model_pos);  // reposition model
-	model_ = trans * model_;
+//	glm::mat4 trans = glm::translate(glm::mat4(1.0f), cameraFront_);  // reposition model
+//	model_ = trans * model_;
 	model_rot = glm::rotate(model_rot, glm::radians(0.8f), glm::vec3(0, 1, 0));  // rotate model on y axis
 	model_ = model_ * model_rot;
 
-	//	 generate a camera view, based on eye-position and lookAt world-position
-//	view_.lookAt(
-//		QVector3D(2, 2, 10),    // Camera in World Space
-//		model_pos,              // Model in world space
-//		QVector3D(0, -1, 0)     // 1 instead of -1 --- upside down
-//	);
-
 	view_ = glm::lookAt(
-		glm::vec3(-2, 0, 4),                // Camera in World Space
-		model_pos,             			// and looks at the origin
-		glm::vec3(0, -1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+		cameraPos_,                 // Camera in World Space
+		cameraPos_ + cameraFront_,             		// and looks at the origin
+		glm::vec3(0, 1, 0)  		// Head is up (set to 0,-1,0 to look upside-down)
 	);
 
 	// build a model-view-projection
 	GLint w, h;
 	h = this->size().height();
 	w = this->size().width();
-
-//	projection_.perspective(qDegreesToRadians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
-
 	projection_ = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
+
 	const auto mvp = projection_ * view_ * model_;
 	program_->setUniformValue(mvpUniform_, QMatrix4x4(glm::value_ptr(mvp)).transposed());
 
