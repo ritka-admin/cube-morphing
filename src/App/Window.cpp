@@ -79,7 +79,7 @@ void Window::onInit()
 	// ----------------------------------------------------------------
 
 	loadModel("Models/Cube.glb");
-	vaoAndEbos = bindModel();
+	vbos = bindModel();
 
 	// ---------------------------------------------
 
@@ -128,11 +128,11 @@ void Window::onInit()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Set initial parameters
-	cameraPos_ = glm::vec3(0, -2, 3);
+	cameraPos_ = glm::vec3(0, -2, 10);
 	cameraFront_ = glm::vec3(0, 0, -3);
 	yawAngle_ = -90.;
 	pitchAngle_ = 0.;
-	first_touch = true;
+	cameraSpeed_ = 0.05;
 }
 
 void Window::onRender()
@@ -190,6 +190,28 @@ void Window::onResize(const size_t width, const size_t height)
 //	projection_.perspective(fov, aspect, zNear, zFar);
 }
 
+void Window::keyPressEvent(QKeyEvent * got_event) {
+	auto key = got_event->key();
+
+	if (key == Qt::Key_W) {
+		cameraPos_.z -= cameraSpeed_;
+	} else if (key == Qt::Key_S) {
+		cameraPos_.z += cameraSpeed_;
+	} else if (key == Qt::Key_A) {
+		cameraPos_.x -= cameraSpeed_;
+	} else if (key == Qt::Key_D) {
+		cameraPos_.x += cameraSpeed_;
+	} else if (key == Qt::Key_Space) {
+		cameraPos_.y += cameraSpeed_;
+	} else if (key == Qt::Key_C) {
+		cameraPos_.y -= cameraSpeed_;
+	} else {
+		return;
+	}
+
+	update();
+}
+
 void Window::mousePressEvent(QMouseEvent * got_event) {
 	mouseStartPos_ = got_event->pos();
 	dragged_ = true;
@@ -205,6 +227,7 @@ void Window::mouseMoveEvent(QMouseEvent * got_event) {
 		pitchAngle_ += y_diff * 0.1f;
 
 		std::cout << yawAngle_ << " " << pitchAngle_ << std::endl;
+
 //		if(pitchAngle_ > 89.0f)
 //			pitchAngle_ = 89.0f;
 //		if(pitchAngle_ < -89.0f)
@@ -284,9 +307,8 @@ void Window::bindModelNodes(std::map<int, GLuint>& vbos,
 	}
 }
 
-std::pair<GLuint, std::map<int, GLuint>> Window::bindModel() {
+std::map<int, GLuint> Window::bindModel() {
 	std::map<int, GLuint> vbos;
-	vao_.bind();
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
 	for (size_t i = 0; i < scene.nodes.size(); ++i) {
@@ -294,40 +316,14 @@ std::pair<GLuint, std::map<int, GLuint>> Window::bindModel() {
 		bindModelNodes(vbos, model.nodes[scene.nodes[i]]);
 	}
 
-	vao_.release();
-	// cleanup vbos but do not delete index buffers yet
-	for (auto it = vbos.cbegin(); it != vbos.cend();) {
-		// ----------------------------------------
-		if (it->first < 0)
-			continue;
-		// ---------------------------------------
-		tinygltf::BufferView bufferView = model.bufferViews[it->first];
-		if (bufferView.target != GL_ELEMENT_ARRAY_BUFFER) {		// TODO: target was not set in bindMesh
-			glDeleteBuffers(1, &vbos[it->first]);
-			vbos.erase(it++);
-		}
-		else {
-			++it;
-		}
-	}
-
-	return {vao_.objectId(), vbos};
+	return vbos;
 }
 
 void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 	for (size_t i = 0; i < model.bufferViews.size(); ++i) {
 		const tinygltf::BufferView &bufferView = model.bufferViews[i];
 		if (bufferView.target == 0) {
-//			std::cout << "WARN: bufferView.target is zero" << std::endl;
-			continue;  // Unsupported bufferView.
-					 /*
-                   From spec2.0 readme:
-                   https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
-                            ... drawArrays function should be used with a count equal to
-                   the count            property of any of the accessors referenced by the
-                   attributes            property            (they are all equal for a given
-                   primitive).
-                 */
+			continue;
 		}
 
 		const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
@@ -379,7 +375,7 @@ void Window::drawMesh(tinygltf::Mesh &mesh) {
 		tinygltf::Primitive primitive = mesh.primitives[i];
 		tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vaoAndEbos.second.at(indexAccessor.bufferView));
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbos.at(indexAccessor.bufferView));
 
 		glDrawElements(primitive.mode, indexAccessor.count,
 					   indexAccessor.componentType,
@@ -398,14 +394,11 @@ void Window::drawModelNodes(tinygltf::Node &node) {
 	}
 }
 void Window::drawModel() {
-	vao_.bind();
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
 	for (size_t i = 0; i < scene.nodes.size(); ++i) {
 		drawModelNodes(model.nodes[scene.nodes[i]]);
 	}
-
-	vao_.release();
 }
 
 void Window::displayLoop() {
@@ -422,9 +415,9 @@ void Window::displayLoop() {
 	model_ = model_ * model_rot;
 
 	view_ = glm::lookAt(
-		cameraPos_,                 // Camera in World Space
-		cameraPos_ + cameraFront_,             		// and looks at the origin
-		glm::vec3(0, 1, 0)  		// Head is up (set to 0,-1,0 to look upside-down)
+		cameraPos_,                 		// camera in world space
+		cameraPos_ + cameraFront_,          // target in world space
+		glm::vec3(0, 1, 0)  				// y-axis in the world space
 	);
 
 	// build a model-view-projection

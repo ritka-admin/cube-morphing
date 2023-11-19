@@ -21,7 +21,6 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-
 class Window final : public fgl::GLWidget
 {
 	Q_OBJECT
@@ -36,6 +35,7 @@ public: // fgl::GLWidget
 	void mousePressEvent(QMouseEvent* got_event) override;
 	void mouseMoveEvent(QMouseEvent* got_event) override;
 	void mouseReleaseEvent(QMouseEvent* got_event) override;
+	void keyPressEvent(QKeyEvent* got_event) override;
 
 private:
 	class PerfomanceMetricsGuard final
@@ -87,23 +87,23 @@ private:
 	QPoint mouseStartPos_;
 	glm::vec3 cameraPos_;
 	glm::vec3 cameraFront_;
-	bool first_touch;
+	float cameraSpeed_;
 	float yawAngle_;
 	float pitchAngle_;
 
-	//----------------------------------------------------
+	// model managing
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
 	std::string err;
 	std::string warn;
-	std::pair<GLuint, std::map<int, GLuint>> vaoAndEbos;
+	std::map<int, GLuint> vbos;
 
 	void displayLoop();
 	void drawModel();
 	void drawModelNodes(tinygltf::Node &node);
 	void drawMesh(tinygltf::Mesh &mesh);
 	void bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh);
-	std::pair<GLuint, std::map<int, GLuint>> bindModel();
+	std::map<int, GLuint> bindModel();
 	void bindModelNodes(std::map<int, GLuint>& vbos, tinygltf::Node &node);
 	bool loadModel(const char *filename);
 };
