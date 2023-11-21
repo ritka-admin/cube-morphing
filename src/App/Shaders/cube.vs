@@ -5,15 +5,19 @@ layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texcoord;
 
 uniform mat4 MVP;
+uniform mat4 normal_mv;
 
 out vec3 normal;
 out vec3 position;
 out vec2 texcoord;
 
-void main(){
+void main() {
 	gl_Position = MVP * vec4(in_vertex, 1);
 	position = gl_Position.xyz;
-	normal = normalize(mat3(MVP) * in_normal);
-	position = in_vertex;
+	// normal = normalize(mat3(MVP) * in_normal);
+	normal = normalize(mat3(normal_mv) * in_normal);
+	// position = in_vertex;
+	// position.x = position.x * cos(3.1415);
+	// position.y = position.y * cos(3.1415);
 	texcoord = in_texcoord;
 }

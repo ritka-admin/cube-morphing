@@ -5,9 +5,11 @@ in vec3 position;
 in vec2 texcoord;
 
 uniform sampler2D tex;
+uniform vec3 sun_coord;
 
 out vec4 color;
 
 void main() {
-    color = texture(tex, texcoord);
+    float cos = max(dot(normal, normalize(sun_coord)), 0.0);
+    color = texture(tex, texcoord) * cos;   // TODO: уходит в 0 при поворотах камеры
 }

@@ -61,7 +61,10 @@ signals:
 	void updateUI();
 
 private:
+	// uniforms
 	GLint mvpUniform_ = -1;
+	GLint sunCoord_ = -1;
+	GLint normalTrasform_ = -1;
 
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
 	QOpenGLBuffer ibo_{QOpenGLBuffer::Type::IndexBuffer};
@@ -85,8 +88,15 @@ private:
 
 	bool dragged_ = false;
 	QPoint mouseStartPos_;
+
+	// widget reacting
+	void change_camera_speed(int s);
+
+	// camera coord parameters
 	glm::vec3 cameraPos_;
 	glm::vec3 cameraFront_;
+	glm::vec3 cameraUp_;
+
 	float cameraSpeed_;
 	float yawAngle_;
 	float pitchAngle_;

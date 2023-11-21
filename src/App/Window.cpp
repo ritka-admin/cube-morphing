@@ -7,6 +7,7 @@
 #include <QScreen>
 #include <QtMath>
 
+#include <QSlider>
 #include <array>
 
 #define TINYGLTF_IMPLEMENTATION
@@ -29,6 +30,11 @@ namespace
 
 Window::Window() noexcept
 {
+	auto speed_slider = new QSlider();
+	speed_slider->setRange(10, 200);
+	speed_slider->setSingleStep(10);
+	speed_slider->setOrientation(Qt::Vertical);
+
 	const auto formatFPS = [](const auto value) {
 		return QString("FPS: %1").arg(QString::number(value));
 	};
@@ -38,6 +44,7 @@ Window::Window() noexcept
 
 	auto layout = new QVBoxLayout();
 	layout->addWidget(fps, 1);
+	layout->addWidget(speed_slider, 1);
 
 	setLayout(layout);
 
@@ -46,6 +53,7 @@ Window::Window() noexcept
 	connect(this, &Window::updateUI, [=] {
 		fps->setText(formatFPS(ui_.fps));
 	});
+	connect(speed_slider, &QSlider::valueChanged, this, &Window::change_camera_speed);
 }
 
 Window::~Window()
@@ -109,7 +117,8 @@ void Window::onInit()
 	// Bind attributes
 
 	mvpUniform_ = program_->uniformLocation("MVP");
-//	sun_position_ = program_->uniformLocation("sun_position");
+	sunCoord_ = program_->uniformLocation("sun_coord");
+	normalTrasform_ = program_->uniformLocation("normal_mv");
 //	sun_color_ = program_->uniformLocation("sun_color");
 
 	// Release all
@@ -128,11 +137,13 @@ void Window::onInit()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Set initial parameters
-	cameraPos_ = glm::vec3(0, -2, 10);
+	cameraPos_ = glm::vec3(0, 0, 10);
 	cameraFront_ = glm::vec3(0, 0, -3);
+	cameraUp_ = glm::vec3(0, 1, 0);
+
 	yawAngle_ = -90.;
 	pitchAngle_ = 0.;
-	cameraSpeed_ = 0.05;
+	cameraSpeed_ = 0.01;
 }
 
 void Window::onRender()
@@ -190,17 +201,26 @@ void Window::onResize(const size_t width, const size_t height)
 //	projection_.perspective(fov, aspect, zNear, zFar);
 }
 
+void Window::change_camera_speed(int s) {
+	cameraSpeed_ = s / static_cast<float>(1000);
+	update();
+}
+
 void Window::keyPressEvent(QKeyEvent * got_event) {
 	auto key = got_event->key();
 
 	if (key == Qt::Key_W) {
-		cameraPos_.z -= cameraSpeed_;
+//		cameraPos_.z -= cameraSpeed_;
+		cameraPos_ += cameraSpeed_ * cameraFront_; 		// cameraFront --- от камеры к объекту => приближаемся
 	} else if (key == Qt::Key_S) {
-		cameraPos_.z += cameraSpeed_;
+//		cameraPos_.z += cameraSpeed_;
+		cameraPos_ -= cameraSpeed_ * cameraFront_;
 	} else if (key == Qt::Key_A) {
-		cameraPos_.x -= cameraSpeed_;
+		auto norm = glm::normalize(glm::cross(cameraFront_, cameraUp_));
+		cameraPos_ -= cameraSpeed_ * norm;
 	} else if (key == Qt::Key_D) {
-		cameraPos_.x += cameraSpeed_;
+		auto norm = glm::normalize(glm::cross(cameraFront_, cameraUp_));
+		cameraPos_ += cameraSpeed_ * norm;
 	} else if (key == Qt::Key_Space) {
 		cameraPos_.y += cameraSpeed_;
 	} else if (key == Qt::Key_C) {
@@ -225,8 +245,6 @@ void Window::mouseMoveEvent(QMouseEvent * got_event) {
 
 		yawAngle_ += x_diff * 0.1f;
 		pitchAngle_ += y_diff * 0.1f;
-
-		std::cout << yawAngle_ << " " << pitchAngle_ << std::endl;
 
 //		if(pitchAngle_ > 89.0f)
 //			pitchAngle_ = 89.0f;
@@ -335,6 +353,8 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 
 		glBufferData(bufferView.target, bufferView.byteLength,
 					 &buffer.data.at(0) + bufferView.byteOffset, GL_STATIC_DRAW);
+
+		// TODO: unbind buffer?
 	}
 
 	for (size_t i = 0; i < mesh.primitives.size(); ++i) {
@@ -346,6 +366,7 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 			int byteStride =
 				accessor.ByteStride(model.bufferViews[accessor.bufferView]);
 			glBindBuffer(GL_ARRAY_BUFFER, vbos[accessor.bufferView]);
+			// TODO: unbind buffer?
 
 			int size = 1;
 			if (accessor.type != TINYGLTF_TYPE_SCALAR) {
@@ -393,6 +414,7 @@ void Window::drawModelNodes(tinygltf::Node &node) {
 		drawModelNodes(model.nodes[node.children[i]]);
 	}
 }
+
 void Window::drawModel() {
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
@@ -417,7 +439,7 @@ void Window::displayLoop() {
 	view_ = glm::lookAt(
 		cameraPos_,                 		// camera in world space
 		cameraPos_ + cameraFront_,          // target in world space
-		glm::vec3(0, 1, 0)  				// y-axis in the world space
+		cameraUp_  							// y-axis in the world space
 	);
 
 	// build a model-view-projection
@@ -427,7 +449,10 @@ void Window::displayLoop() {
 	projection_ = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
 
 	const auto mvp = projection_ * view_ * model_;
+	const auto normal_mv = glm::transpose(glm::inverse(view_ * model_));
 	program_->setUniformValue(mvpUniform_, QMatrix4x4(glm::value_ptr(mvp)).transposed());
+	program_->setUniformValue(normalTrasform_, QMatrix4x4(glm::value_ptr(normal_mv)).transposed());
+	program_->setUniformValue(sunCoord_, QVector3D(3.0, 10.0, 5.0));
 
 	drawModel();
 }
