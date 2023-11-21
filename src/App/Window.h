@@ -62,7 +62,8 @@ signals:
 
 private:
 	// uniforms
-	GLint mvpUniform_ = -1;
+	GLint modelUniform_ = -1;
+	GLint viewProjUniform_ = -1;
 	GLint sunCoord_ = -1;
 	GLint normalTrasform_ = -1;
 
@@ -108,7 +109,7 @@ private:
 	std::string warn;
 	std::map<int, GLuint> vbos;
 
-	void displayLoop();
+	void display();
 	void drawModel();
 	void drawModelNodes(tinygltf::Node &node);
 	void drawMesh(tinygltf::Mesh &mesh);

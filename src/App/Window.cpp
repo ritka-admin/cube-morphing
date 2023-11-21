@@ -116,9 +116,10 @@ void Window::onInit()
 //								 static_cast<int>(7 * sizeof(GLfloat)));
 	// Bind attributes
 
-	mvpUniform_ = program_->uniformLocation("MVP");
+	viewProjUniform_ = program_->uniformLocation("ViewProjMat");
+	modelUniform_ = program_->uniformLocation("ModelMat");
 	sunCoord_ = program_->uniformLocation("sun_coord");
-	normalTrasform_ = program_->uniformLocation("normal_mv");
+	normalTrasform_ = program_->uniformLocation("normalMV");
 //	sun_color_ = program_->uniformLocation("sun_color");
 
 	// Release all
@@ -137,8 +138,8 @@ void Window::onInit()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Set initial parameters
-	cameraPos_ = glm::vec3(0, 0, 10);
-	cameraFront_ = glm::vec3(0, 0, -3);
+	cameraPos_ = glm::vec3(0, 0, 0);
+	cameraFront_ = glm::vec3(0, 0, -4);
 	cameraUp_ = glm::vec3(0, 1, 0);
 
 	yawAngle_ = -90.;
@@ -171,7 +172,7 @@ void Window::onRender()
 	texture_->bind();
 
 	// Draw
-	displayLoop();
+	display();
 
 	// Release VAO and shader program
 	texture_->release();
@@ -423,18 +424,18 @@ void Window::drawModel() {
 	}
 }
 
-void Window::displayLoop() {
-	// Model matrix : an identity matrix (model will be at the origin)
+void Window::display() {
 	glm::mat4 model_rot = glm::mat4(1.0f);
-//	glm::vec3 model_pos = glm::vec3(0, 0, -3);
 
 	glClearColor(0.2, 0.2, 0.2, 1.0);		// background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//	glm::mat4 trans = glm::translate(glm::mat4(1.0f), cameraFront_);  // reposition model
-//	model_ = trans * model_;
-	model_rot = glm::rotate(model_rot, glm::radians(0.8f), glm::vec3(0, 1, 0));  // rotate model on y axis
-	model_ = model_ * model_rot;
+	// calculate model, view, projection separately
+	glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -4));  // reposition model
+ 	model_ = trans * model_;
+	model_ = glm::scale(model_, glm::vec3(0.5, 0.5, 0.5));
+//	model_rot = glm::rotate(model_rot, glm::radians(0.8f), glm::vec3(0, 1, 0));  // rotate model on y axis
+//	model_ = model_ * model_rot;
 
 	view_ = glm::lookAt(
 		cameraPos_,                 		// camera in world space
@@ -442,15 +443,17 @@ void Window::displayLoop() {
 		cameraUp_  							// y-axis in the world space
 	);
 
-	// build a model-view-projection
 	GLint w, h;
 	h = this->size().height();
 	w = this->size().width();
 	projection_ = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
 
-	const auto mvp = projection_ * view_ * model_;
+	// calculate uniforms
+	const auto pv = projection_ * view_;
 	const auto normal_mv = glm::transpose(glm::inverse(view_ * model_));
-	program_->setUniformValue(mvpUniform_, QMatrix4x4(glm::value_ptr(mvp)).transposed());
+
+	program_->setUniformValue(modelUniform_, QMatrix4x4(glm::value_ptr(model_)).transposed());
+	program_->setUniformValue(viewProjUniform_, QMatrix4x4(glm::value_ptr(pv)).transposed());
 	program_->setUniformValue(normalTrasform_, QMatrix4x4(glm::value_ptr(normal_mv)).transposed());
 	program_->setUniformValue(sunCoord_, QVector3D(3.0, 10.0, 5.0));
 
