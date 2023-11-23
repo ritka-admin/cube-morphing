@@ -7,6 +7,7 @@
 #include <QScreen>
 #include <QtMath>
 
+#include <QCheckBox>
 #include <QSlider>
 #include <array>
 
@@ -35,6 +36,11 @@ Window::Window() noexcept
 	speed_slider->setSingleStep(10);
 	speed_slider->setOrientation(Qt::Vertical);
 
+	auto directional_light_checkbox = new QCheckBox();
+	directional_light_checkbox->setChecked(false);
+	directional_light_checkbox->setText("directional");
+//	directional_light_checkbox->setStyleSheet("Text { color : pink }");
+
 	const auto formatFPS = [](const auto value) {
 		return QString("FPS: %1").arg(QString::number(value));
 	};
@@ -45,6 +51,7 @@ Window::Window() noexcept
 	auto layout = new QVBoxLayout();
 	layout->addWidget(fps, 1);
 	layout->addWidget(speed_slider, 1);
+	layout->addWidget(directional_light_checkbox);		// TODO: add other checkboxes + control spaces
 
 	setLayout(layout);
 
@@ -54,6 +61,7 @@ Window::Window() noexcept
 		fps->setText(formatFPS(ui_.fps));
 	});
 	connect(speed_slider, &QSlider::valueChanged, this, &Window::change_camera_speed);
+	connect(directional_light_checkbox, &QCheckBox::stateChanged, this, &Window::change_directional_light);
 }
 
 Window::~Window()
@@ -86,7 +94,7 @@ void Window::onInit()
 
 	// ----------------------------------------------------------------
 
-	loadModel("Models/Cube.glb");
+	loadModel("Models/vert_cube.glb");
 	vbos = bindModel();
 
 	// ---------------------------------------------
@@ -120,6 +128,7 @@ void Window::onInit()
 	modelUniform_ = program_->uniformLocation("ModelMat");
 	sunCoord_ = program_->uniformLocation("sun_coord");
 	normalTrasform_ = program_->uniformLocation("normalMV");
+	directionalLightUniform_ = program_->uniformLocation("directional");
 //	sun_color_ = program_->uniformLocation("sun_color");
 
 	// Release all
@@ -142,9 +151,13 @@ void Window::onInit()
 	cameraFront_ = glm::vec3(0, 0, -4);
 	cameraUp_ = glm::vec3(0, 1, 0);
 
+	// free movement parameters
 	yawAngle_ = -90.;
 	pitchAngle_ = 0.;
 	cameraSpeed_ = 0.01;
+
+	// light parameters
+	directional = false;
 }
 
 void Window::onRender()
@@ -207,6 +220,11 @@ void Window::change_camera_speed(int s) {
 	update();
 }
 
+void Window::change_directional_light([[maybe_unused]] int state) {
+	directional = !directional;
+	update();
+}
+
 void Window::keyPressEvent(QKeyEvent * got_event) {
 	auto key = got_event->key();
 
@@ -214,7 +232,6 @@ void Window::keyPressEvent(QKeyEvent * got_event) {
 //		cameraPos_.z -= cameraSpeed_;
 		cameraPos_ += cameraSpeed_ * cameraFront_; 		// cameraFront --- от камеры к объекту => приближаемся
 	} else if (key == Qt::Key_S) {
-//		cameraPos_.z += cameraSpeed_;
 		cameraPos_ -= cameraSpeed_ * cameraFront_;
 	} else if (key == Qt::Key_A) {
 		auto norm = glm::normalize(glm::cross(cameraFront_, cameraUp_));
@@ -222,7 +239,7 @@ void Window::keyPressEvent(QKeyEvent * got_event) {
 	} else if (key == Qt::Key_D) {
 		auto norm = glm::normalize(glm::cross(cameraFront_, cameraUp_));
 		cameraPos_ += cameraSpeed_ * norm;
-	} else if (key == Qt::Key_Space) {
+	} else if (key == Qt::Key_V) {
 		cameraPos_.y += cameraSpeed_;
 	} else if (key == Qt::Key_C) {
 		cameraPos_.y -= cameraSpeed_;
@@ -246,11 +263,6 @@ void Window::mouseMoveEvent(QMouseEvent * got_event) {
 
 		yawAngle_ += x_diff * 0.1f;
 		pitchAngle_ += y_diff * 0.1f;
-
-//		if(pitchAngle_ > 89.0f)
-//			pitchAngle_ = 89.0f;
-//		if(pitchAngle_ < -89.0f)
-//			pitchAngle_ = -89.0f;
 
 		cameraFront_.x = glm::cos(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
 		cameraFront_.y = glm::sin(glm::radians(pitchAngle_));
@@ -360,7 +372,7 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 
 	for (size_t i = 0; i < mesh.primitives.size(); ++i) {
 		tinygltf::Primitive primitive = mesh.primitives[i];
-		tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
+//		tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
 
 		for (auto &attrib : primitive.attributes) {
 			tinygltf::Accessor accessor = model.accessors[attrib.second];
@@ -383,6 +395,12 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 			// --------------------------------------------------------
 			if (vaa > -1) {
 				glEnableVertexAttribArray(vaa);
+				// 1: номер параметра (номер регистра видеокарты)
+				// 2: сколько параметров поступит (у треуг., напр, 3)
+				// 3: какого типа будут эти параметры
+				// 4: нужно ли normalize применить ко входу (?)
+				// 5: где от текущей позиции будет в буффере след значение (значение сдвига)
+				// 6: сдвиг от начала буфера: где первое значение
 				glVertexAttribPointer(vaa, size, accessor.componentType,
 									  accessor.normalized ? GL_TRUE : GL_FALSE,
 									  byteStride, BUFFER_OFFSET(accessor.byteOffset));
@@ -434,8 +452,6 @@ void Window::display() {
 	glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -4));  // reposition model
  	model_ = trans * model_;
 	model_ = glm::scale(model_, glm::vec3(0.5, 0.5, 0.5));
-//	model_rot = glm::rotate(model_rot, glm::radians(0.8f), glm::vec3(0, 1, 0));  // rotate model on y axis
-//	model_ = model_ * model_rot;
 
 	view_ = glm::lookAt(
 		cameraPos_,                 		// camera in world space
@@ -456,6 +472,7 @@ void Window::display() {
 	program_->setUniformValue(viewProjUniform_, QMatrix4x4(glm::value_ptr(pv)).transposed());
 	program_->setUniformValue(normalTrasform_, QMatrix4x4(glm::value_ptr(normal_mv)).transposed());
 	program_->setUniformValue(sunCoord_, QVector3D(3.0, 10.0, 5.0));
+	program_->setUniformValue(directionalLightUniform_, directional);
 
 	drawModel();
 }

@@ -2,13 +2,13 @@
     <qresource prefix="/">
         <file>Models/chess.glb</file>
         <file>Models/Cube.glb</file>
+        <file>Models/vert_cube.glb</file>
     </qresource>
     <qresource prefix="/">
         <file>Textures/voronoi.png</file>
         <file>Textures/Cube_BaseColor.png</file>
         <file>Textures/oxy.png</file>
         <file>Textures/WaterBottle_baseColor.png</file>
-        <file>Textures/cubemaps_skybox.png</file>
         <file>Textures/DuckCM.png</file>
     </qresource>
     <qresource prefix="/">

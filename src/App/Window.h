@@ -66,11 +66,14 @@ private:
 	GLint viewProjUniform_ = -1;
 	GLint sunCoord_ = -1;
 	GLint normalTrasform_ = -1;
+	GLint directionalLightUniform_ = -1;
 
+	// buffers
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
 	QOpenGLBuffer ibo_{QOpenGLBuffer::Type::IndexBuffer};
 	QOpenGLVertexArrayObject vao_;
 
+	// mvp parameters
 	glm::mat4 model_;
 	glm::mat4 view_;
 	glm::mat4 projection_;
@@ -87,20 +90,26 @@ private:
 
 	bool animated_ = false;
 
+	// mouse control params
 	bool dragged_ = false;
 	QPoint mouseStartPos_;
 
 	// widget reacting
 	void change_camera_speed(int s);
+	void change_directional_light(int state);
 
 	// camera coord parameters
 	glm::vec3 cameraPos_;
 	glm::vec3 cameraFront_;
 	glm::vec3 cameraUp_;
 
+	// free movements params
 	float cameraSpeed_;
 	float yawAngle_;
 	float pitchAngle_;
+
+	// light params
+	bool directional;
 
 	// model managing
 	tinygltf::Model model;

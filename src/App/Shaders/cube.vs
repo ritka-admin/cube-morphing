@@ -24,9 +24,10 @@ void main() {
 	float prev_y_square = prev_y * prev_y;
 	float prev_z_square = prev_z * prev_z;
 
-  	vertex.x = prev_x * sqrt(1 - prev_y_square / 2 - prev_z_square / 2 + prev_y_square * prev_z_square / 3);
+    vertex.x = prev_x * sqrt(1 - prev_y_square / 2 - prev_z_square / 2 + prev_y_square * prev_z_square / 3);
 	vertex.y = prev_y * sqrt(1 - prev_z_square / 2 - prev_x_square / 2 + prev_x_square * prev_z_square / 3);
 	vertex.z = prev_z * sqrt(1 - prev_x_square / 2 - prev_y_square / 2 + prev_x_square * prev_y_square / 3);
+    // TODO: correct normals?
 
     gl_Position = ViewProjMat * ModelMat * vertex;
     normal = normalize(mat3(normalMV) * in_normal);
