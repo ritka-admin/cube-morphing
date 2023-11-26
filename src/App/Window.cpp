@@ -36,14 +36,24 @@ Window::Window() noexcept
 	speed_slider->setSingleStep(10);
 	speed_slider->setOrientation(Qt::Vertical);
 
+	auto speed_label = new QLabel("Speed 🚀");
+	speed_label->setFont(QFont("Arial", 10));
+
 	auto morphing_slider = new QSlider();
 	morphing_slider->setRange(0, 100);
 	morphing_slider->setSingleStep(1);
 	morphing_slider->setOrientation(Qt::Vertical);
 
+	auto morphing_label = new QLabel("Spherify 🔮");
+	morphing_label->setFont(QFont("Arial", 10));
+
 	auto directional_light_checkbox = new QCheckBox();
 	directional_light_checkbox->setChecked(false);
-	directional_light_checkbox->setText("directional");
+	directional_light_checkbox->setText("directional 🌞");
+
+	auto spot_light_checkbox = new QCheckBox();
+	spot_light_checkbox->setChecked(false);
+	spot_light_checkbox->setText("spot 💡");
 
 	const auto formatFPS = [](const auto value) {
 		return QString("FPS: %1").arg(QString::number(value));
@@ -53,10 +63,13 @@ Window::Window() noexcept
 	fps->setStyleSheet("QLabel { color : white; }");
 
 	auto layout = new QVBoxLayout();
-	layout->addWidget(fps, 1);
-	layout->addWidget(speed_slider, 1);
-	layout->addWidget(morphing_slider, 1);
+	layout->addWidget(fps, 2);
+	layout->addWidget(speed_slider, 3);
+	layout->addWidget(speed_label, 1);
+	layout->addWidget(morphing_slider, 3);
+	layout->addWidget(morphing_label, 1);
 	layout->addWidget(directional_light_checkbox);		// TODO: add other checkboxes + control spaces
+	layout->addWidget(spot_light_checkbox);
 
 	setLayout(layout);
 
@@ -100,7 +113,7 @@ void Window::onInit()
 
 	// ----------------------------------------------------------------
 
-	loadModel("/media/ritka-admin/Data/master/homework_sem6.1/graphics/hw2/morphing-plus-phong-shading/src/App/Models/vert_cube.glb");
+	loadModel("Models/vert_cube.glb");
 	vbos = bindModel();
 
 	// ---------------------------------------------
@@ -460,7 +473,7 @@ void Window::drawModel() {
 void Window::display() {
 	glm::mat4 model_rot = glm::mat4(1.0f);
 
-	glClearColor(0.2, 0.2, 0.2, 1.0);		// background color
+	glClearColor(0.4, 0.4, 0.4, 1.0);		// background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// calculate model, view, projection separately
