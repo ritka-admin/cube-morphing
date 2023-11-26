@@ -8,12 +8,8 @@
         <file>Textures/voronoi.png</file>
         <file>Textures/Cube_BaseColor.png</file>
         <file>Textures/oxy.png</file>
-        <file>Textures/WaterBottle_baseColor.png</file>
-        <file>Textures/DuckCM.png</file>
     </qresource>
     <qresource prefix="/">
-        <file>Shaders/diffuse.fs</file>
-        <file>Shaders/diffuse.vs</file>
         <file>Shaders/cube.vs</file>
         <file>Shaders/cube.fs</file>
     </qresource>

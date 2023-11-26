@@ -67,6 +67,7 @@ private:
 	GLint sunCoord_ = -1;
 	GLint normalTrasform_ = -1;
 	GLint directionalLightUniform_ = -1;
+	GLint morphingParam_ = -1; 
 
 	// buffers
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
@@ -97,6 +98,7 @@ private:
 	// widget reacting
 	void change_camera_speed(int s);
 	void change_directional_light(int state);
+	void change_morphing_param(int state);
 
 	// camera coord parameters
 	glm::vec3 cameraPos_;
@@ -110,6 +112,9 @@ private:
 
 	// light params
 	bool directional;
+
+	// morphing params
+	int morphing_param;
 
 	// model managing
 	tinygltf::Model model;

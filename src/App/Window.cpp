@@ -36,10 +36,14 @@ Window::Window() noexcept
 	speed_slider->setSingleStep(10);
 	speed_slider->setOrientation(Qt::Vertical);
 
+	auto morphing_slider = new QSlider();
+	morphing_slider->setRange(0, 100);
+	morphing_slider->setSingleStep(1);
+	morphing_slider->setOrientation(Qt::Vertical);
+
 	auto directional_light_checkbox = new QCheckBox();
 	directional_light_checkbox->setChecked(false);
 	directional_light_checkbox->setText("directional");
-//	directional_light_checkbox->setStyleSheet("Text { color : pink }");
 
 	const auto formatFPS = [](const auto value) {
 		return QString("FPS: %1").arg(QString::number(value));
@@ -51,6 +55,7 @@ Window::Window() noexcept
 	auto layout = new QVBoxLayout();
 	layout->addWidget(fps, 1);
 	layout->addWidget(speed_slider, 1);
+	layout->addWidget(morphing_slider, 1);
 	layout->addWidget(directional_light_checkbox);		// TODO: add other checkboxes + control spaces
 
 	setLayout(layout);
@@ -62,6 +67,7 @@ Window::Window() noexcept
 	});
 	connect(speed_slider, &QSlider::valueChanged, this, &Window::change_camera_speed);
 	connect(directional_light_checkbox, &QCheckBox::stateChanged, this, &Window::change_directional_light);
+	connect(morphing_slider, &QSlider::valueChanged, this, &Window::change_morphing_param);
 }
 
 Window::~Window()
@@ -94,7 +100,7 @@ void Window::onInit()
 
 	// ----------------------------------------------------------------
 
-	loadModel("Models/vert_cube.glb");
+	loadModel("/media/ritka-admin/Data/master/homework_sem6.1/graphics/hw2/morphing-plus-phong-shading/src/App/Models/vert_cube.glb");
 	vbos = bindModel();
 
 	// ---------------------------------------------
@@ -129,7 +135,7 @@ void Window::onInit()
 	sunCoord_ = program_->uniformLocation("sun_coord");
 	normalTrasform_ = program_->uniformLocation("normalMV");
 	directionalLightUniform_ = program_->uniformLocation("directional");
-//	sun_color_ = program_->uniformLocation("sun_color");
+	morphingParam_ = program_->uniformLocation("morphing_coef");
 
 	// Release all
 	program_->release();
@@ -158,6 +164,9 @@ void Window::onInit()
 
 	// light parameters
 	directional = false;
+
+	// morphing parameters
+	morphing_param = 100;
 }
 
 void Window::onRender()
@@ -213,6 +222,11 @@ void Window::onResize(const size_t width, const size_t height)
 //	const auto fov = 60.0f;
 //	projection_.setToIdentity();
 //	projection_.perspective(fov, aspect, zNear, zFar);
+}
+
+void Window::change_morphing_param(int state) {
+	morphing_param = 100 - state;
+	update();
 }
 
 void Window::change_camera_speed(int s) {
@@ -408,6 +422,7 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 				std::cout << "vaa missing: " << attrib.first << std::endl;
 		}
 	}
+	// TODO: bind textures: compile to gltf, add, compile back to glb
 }
 
 void Window::drawMesh(tinygltf::Mesh &mesh) {
@@ -473,6 +488,7 @@ void Window::display() {
 	program_->setUniformValue(normalTrasform_, QMatrix4x4(glm::value_ptr(normal_mv)).transposed());
 	program_->setUniformValue(sunCoord_, QVector3D(3.0, 10.0, 5.0));
 	program_->setUniformValue(directionalLightUniform_, directional);
+	program_->setUniformValue(morphingParam_, morphing_param);
 
 	drawModel();
 }
