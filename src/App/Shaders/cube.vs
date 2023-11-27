@@ -4,20 +4,21 @@ layout(location = 0) in vec3 in_vertex;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_texcoord;
 
-uniform mat4 ViewProjMat;
 uniform mat4 ModelMat;
+uniform mat4 ViewMat;
+uniform mat4 ProjMat;
 uniform mat4 normalMV;
+uniform vec3 sun_coord;
 uniform int morphing_coef;
 
 out vec3 normal;
 out vec3 position;
 out vec2 texcoord;
+out vec3 sun;
 
-void main() {
-    vec4 vertex;
-    vertex = vec4(in_vertex, 1);
 
-	float prev_x = vertex.x;
+vec4 spherify(vec4 vertex) {
+    float prev_x = vertex.x;
 	float prev_y = vertex.y;
 	float prev_z = vertex.z;
 
@@ -36,11 +37,20 @@ void main() {
     vertex.x = prev_x * res_x;
 	vertex.y = prev_y * res_y;
 	vertex.z = prev_z * res_z;
-    // TODO: correct normals?
 
-    gl_Position = ViewProjMat * ModelMat * vertex;
+    return vertex;
+}
+
+
+void main() {
+    vec4 vertex;
+    vertex = vec4(in_vertex, 1);
+	vertex = spherify(vertex);
+    // TODO: correct normals after spherify?
+
+    gl_Position = ProjMat * ViewMat * ModelMat * vertex;
     normal = normalize(mat3(normalMV) * in_normal);
-    // normal = in_normal;
+    sun = normalize(mat3(ViewMat) * sun_coord);
     position = in_vertex;
     texcoord = in_texcoord;
 }

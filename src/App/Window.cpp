@@ -79,8 +79,9 @@ Window::Window() noexcept
 		fps->setText(formatFPS(ui_.fps));
 	});
 	connect(speed_slider, &QSlider::valueChanged, this, &Window::change_camera_speed);
-	connect(directional_light_checkbox, &QCheckBox::stateChanged, this, &Window::change_directional_light);
 	connect(morphing_slider, &QSlider::valueChanged, this, &Window::change_morphing_param);
+	connect(directional_light_checkbox, &QCheckBox::stateChanged, this, &Window::change_directional_light);
+	connect(spot_light_checkbox, &QCheckBox::stateChanged, this, &Window::change_spot_light);
 }
 
 Window::~Window()
@@ -143,12 +144,17 @@ void Window::onInit()
 //								 static_cast<int>(7 * sizeof(GLfloat)));
 	// Bind attributes
 
-	viewProjUniform_ = program_->uniformLocation("ViewProjMat");
 	modelUniform_ = program_->uniformLocation("ModelMat");
+	viewUniform_ = program_-> uniformLocation("ViewMat");
+	projectionUniform_ = program_->uniformLocation("ProjMat");
 	sunCoord_ = program_->uniformLocation("sun_coord");
 	normalTrasform_ = program_->uniformLocation("normalMV");
-	directionalLightUniform_ = program_->uniformLocation("directional");
+	isDirectionalLightUniform_ = program_->uniformLocation("directional");
+	isSpotLightUniform_ = program_->uniformLocation("spot");
 	morphingParam_ = program_->uniformLocation("morphing_coef");
+	spotPositionUniform_ = program_->uniformLocation("spot_position");
+	spotDirection_ = program_->uniformLocation("spot_direction");
+	// spotAngle_ = program_->uniformLocation("spot_angle");
 
 	// Release all
 	program_->release();
@@ -166,17 +172,20 @@ void Window::onInit()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Set initial parameters
-	cameraPos_ = glm::vec3(0, 0, 0);
+	cameraPos_ = glm::vec3(0, 2, 7);
 	cameraFront_ = glm::vec3(0, 0, -4);
 	cameraUp_ = glm::vec3(0, 1, 0);
 
 	// free movement parameters
 	yawAngle_ = -90.;
-	pitchAngle_ = 0.;
+	pitchAngle_ = -13.6;
 	cameraSpeed_ = 0.01;
+	calculate_camera_front();
 
 	// light parameters
-	directional = false;
+	is_directional = false;
+	is_spot = false;
+	spotPosition = glm::vec3(5.0, 10.0, 3.0);
 
 	// morphing parameters
 	morphing_param = 100;
@@ -188,12 +197,6 @@ void Window::onRender()
 
 	// Clear buffers
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Calculate MVP matrix
-	model_ = glm::mat4(1.0f);
-	view_ = glm::mat4(1.0f);
-	projection_ = glm::mat4(1.0f);
-//	const auto mvp = projection_ * view_ * model_;
 
 	// Bind VAO and shader program
 	program_->bind();
@@ -248,7 +251,12 @@ void Window::change_camera_speed(int s) {
 }
 
 void Window::change_directional_light([[maybe_unused]] int state) {
-	directional = !directional;
+	is_directional = !is_directional;
+	update();
+}
+
+void Window::change_spot_light([[maybe_unused]] int state) {
+	is_spot = !is_spot;
 	update();
 }
 
@@ -291,11 +299,7 @@ void Window::mouseMoveEvent(QMouseEvent * got_event) {
 		yawAngle_ += x_diff * 0.1f;
 		pitchAngle_ += y_diff * 0.1f;
 
-		cameraFront_.x = glm::cos(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
-		cameraFront_.y = glm::sin(glm::radians(pitchAngle_));
-		cameraFront_.z = glm::sin(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
-
-		cameraFront_ = glm::normalize(cameraFront_);
+		calculate_camera_front();
 
 		mouseStartPos_ = got_event->pos();
 
@@ -334,6 +338,14 @@ auto Window::captureMetrics() -> PerfomanceMetricsGuard
 		}
 	};
 }
+
+void Window::calculate_camera_front() {
+	cameraFront_.x = glm::cos(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
+	cameraFront_.y = glm::sin(glm::radians(pitchAngle_));
+	cameraFront_.z = glm::sin(glm::radians(yawAngle_)) * glm::cos(glm::radians(pitchAngle_));
+	cameraFront_ = glm::normalize(cameraFront_);
+}
+
 
 bool Window::loadModel(const char *filename) {
 	bool res = loader.LoadBinaryFromFile(&this->model, &err, &warn, filename);
@@ -471,15 +483,18 @@ void Window::drawModel() {
 }
 
 void Window::display() {
-	glm::mat4 model_rot = glm::mat4(1.0f);
+	model_ = glm::mat4(1.0f);
+	view_ = glm::mat4(1.0f);
+	projection_ = glm::mat4(1.0f);
 
-	glClearColor(0.4, 0.4, 0.4, 1.0);		// background color
+	glClearColor(0.3, 0.3, 0.3, 1.0);		// background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// calculate model, view, projection separately
-	glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -4));  // reposition model
- 	model_ = trans * model_;
-	model_ = glm::scale(model_, glm::vec3(0.5, 0.5, 0.5));
+	glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0, 1, 0));
+	model_ = rot * model_;
+	// glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -4));  // reposition model
+	// model_ = trans * model_;
 
 	view_ = glm::lookAt(
 		cameraPos_,                 		// camera in world space
@@ -493,15 +508,21 @@ void Window::display() {
 	projection_ = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 100.0f);
 
 	// calculate uniforms
-	const auto pv = projection_ * view_;
 	const auto normal_mv = glm::transpose(glm::inverse(view_ * model_));
+	auto spot_direction = glm::vec3(0, 0, 0) - spotPosition;
 
+	// set uniforms
 	program_->setUniformValue(modelUniform_, QMatrix4x4(glm::value_ptr(model_)).transposed());
-	program_->setUniformValue(viewProjUniform_, QMatrix4x4(glm::value_ptr(pv)).transposed());
+	program_->setUniformValue(viewUniform_, QMatrix4x4(glm::value_ptr(view_)).transposed());
+	program_->setUniformValue(projectionUniform_, QMatrix4x4(glm::value_ptr(projection_)).transposed());
 	program_->setUniformValue(normalTrasform_, QMatrix4x4(glm::value_ptr(normal_mv)).transposed());
-	program_->setUniformValue(sunCoord_, QVector3D(3.0, 10.0, 5.0));
-	program_->setUniformValue(directionalLightUniform_, directional);
+	program_->setUniformValue(sunCoord_, QVector3D(3.0, 5.0, 1.0));
+	program_->setUniformValue(isDirectionalLightUniform_, is_directional);
+	program_->setUniformValue(isSpotLightUniform_, is_spot);
 	program_->setUniformValue(morphingParam_, morphing_param);
+	program_->setUniformValue(spotPositionUniform_, QVector3D(spotPosition.x, spotPosition.y, spotPosition.z));
+	program_->setUniformValue(spotDirection_, QVector3D(spot_direction.x, spot_direction.y, spot_direction.z));
+	// program_->setUniformValue(spotAngle_, 20.0);
 
 	drawModel();
 }

@@ -63,11 +63,16 @@ signals:
 private:
 	// uniforms
 	GLint modelUniform_ = -1;
-	GLint viewProjUniform_ = -1;
+	GLint viewUniform_ = -1;
+	GLint projectionUniform_ = -1;
 	GLint sunCoord_ = -1;
 	GLint normalTrasform_ = -1;
-	GLint directionalLightUniform_ = -1;
-	GLint morphingParam_ = -1; 
+	GLint isDirectionalLightUniform_ = -1;
+	GLint isSpotLightUniform_ = -1;
+	GLint morphingParam_ = -1;
+	GLint spotPositionUniform_ = -1;
+	GLint spotDirection_ = -1;
+	//GLint spotAngle_ = -1;
 
 	// buffers
 	QOpenGLBuffer vbo_{QOpenGLBuffer::Type::VertexBuffer};
@@ -97,8 +102,9 @@ private:
 
 	// widget reacting
 	void change_camera_speed(int s);
-	void change_directional_light(int state);
 	void change_morphing_param(int state);
+	void change_directional_light(int state);
+	void change_spot_light(int state);
 
 	// camera coord parameters
 	glm::vec3 cameraPos_;
@@ -111,7 +117,9 @@ private:
 	float pitchAngle_;
 
 	// light params
-	bool directional;
+	bool is_directional;
+	bool is_spot;
+	glm::vec3 spotPosition;
 
 	// morphing params
 	int morphing_param;
@@ -131,4 +139,5 @@ private:
 	std::map<int, GLuint> bindModel();
 	void bindModelNodes(std::map<int, GLuint>& vbos, tinygltf::Node &node);
 	bool loadModel(const char *filename);
+	void calculate_camera_front();
 };
