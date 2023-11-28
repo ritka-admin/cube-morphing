@@ -83,6 +83,7 @@ Window::~Window()
 	}
 }
 
+#include <filesystem>
 void Window::onInit()
 {
 	// Configure shaders
@@ -96,10 +97,8 @@ void Window::onInit()
 	vao_.bind();
 
 	// ----------------------------------------------------------------
-
-	loadModel("Models/vert_cube.glb");
+	loadModel("../../../src/App/Models/vert_cube.glb");
 	vbos = bindModel();
-
 	// ---------------------------------------------
 
 	texture_ = std::make_unique<QOpenGLTexture>(QImage(":/Textures/oxy.png"));
@@ -189,7 +188,7 @@ void Window::onRender()
 	}
 }
 
-void Window::onResize(const size_t width, const size_t height)
+void Window::onResize([[maybe_unused]] const size_t width, [[maybe_unused]] const size_t height)
 {}
 
 void Window::change_morphing_param(int state) {
@@ -318,12 +317,11 @@ bool Window::loadModel(const char *filename) {
 
 void Window::bindModelNodes(std::map<int, GLuint>& vbos,
 					tinygltf::Node &node) {
-	if ((node.mesh >= 0) && (node.mesh < model.meshes.size())) {
+	if ((node.mesh >= 0) && (static_cast<size_t>(node.mesh) < model.meshes.size())) {
 		bindMesh(vbos, model.meshes[node.mesh]);
 	}
 
 	for (size_t i = 0; i < node.children.size(); i++) {
-		assert((node.children[i] >= 0) && (node.children[i] < model.nodes.size()));
 		bindModelNodes(vbos, model.nodes[node.children[i]]);
 	}
 }
@@ -333,7 +331,6 @@ std::map<int, GLuint> Window::bindModel() {
 
 	const tinygltf::Scene &scene = model.scenes[model.defaultScene];
 	for (size_t i = 0; i < scene.nodes.size(); ++i) {
-		assert((scene.nodes[i] >= 0) && (scene.nodes[i] < model.nodes.size()));
 		bindModelNodes(vbos, model.nodes[scene.nodes[i]]);
 	}
 
@@ -415,7 +412,7 @@ void Window::drawMesh(tinygltf::Mesh &mesh) {
 
 // recursively draw node and children nodes of model
 void Window::drawModelNodes(tinygltf::Node &node) {
-	if ((node.mesh >= 0) && (node.mesh < model.meshes.size())) {
+	if ((node.mesh >= 0) && (static_cast<size_t>(node.mesh) < model.meshes.size())) {
 		drawMesh(model.meshes[node.mesh]);
 	}
 
