@@ -49,21 +49,19 @@ vec4 spherify(vec4 vertex) {
 void main() {
     vec4 vertex;
     vertex = vec4(in_vertex, 1);
-	vec4 s_vertex = spherify(vertex);
+	vertex = spherify(vertex);
 
-    // TODO: why this does not correct normals???
-    vec3 tmp;
-    float cos = dot(normalize(in_normal), normalize(s_vertex.xyz));
-    tmp = in_normal * cos;
+    vec4 tmp = vec4(in_normal, 1);
+    tmp = normalize(vertex) + (tmp - normalize(vertex)) / 100 * morphing_coef;
 
-    gl_Position = ProjMat * ViewMat * ModelMat * s_vertex;
-    normal = normalize(mat3(normalMV) * tmp);
+    gl_Position = ProjMat * ViewMat * ModelMat * vertex;
+    normal = normalize(mat3(normalMV) * tmp.xyz);
     position = in_vertex;
     texcoord = in_texcoord;
 
     // light params
     sun = normalize(mat3(ViewMat) * sun_coord);
-    mat3 modelView = mat3(ViewMat * ModelMat);
-    lightDirection = modelView * vertex.xyz - modelView * spot_position;
-    spotDirection = modelView * spot_direction;
+    // mat3 modelView = mat3(ViewMat * ModelMat);
+    lightDirection = mat3(ViewMat) * vertex.xyz - mat3(ViewMat) * spot_position;
+    spotDirection = mat3(ViewMat) * spot_direction;
 }

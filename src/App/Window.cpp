@@ -185,7 +185,7 @@ void Window::onInit()
 	// light parameters
 	is_directional = false;
 	is_spot = false;
-	spotPosition = glm::vec3(5.0, 10.0, 3.0);
+	spotPosition = glm::vec3(0.0, 5.0, 3.0);
 
 	// morphing parameters
 	morphing_param = 100;
@@ -509,7 +509,7 @@ void Window::display() {
 
 	// calculate uniforms
 	const auto normal_mv = glm::transpose(glm::inverse(view_ * model_));
-	auto spot_direction = glm::vec3(0, 0, -4) - spotPosition;
+	auto spot_direction = glm::vec3(0, 1, -2) - spotPosition;
 
 	// set uniforms
 	program_->setUniformValue(modelUniform_, QMatrix4x4(glm::value_ptr(model_)).transposed());

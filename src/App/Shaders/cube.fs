@@ -32,9 +32,9 @@ void main() {
     } 
     
     if (spot) {
-        float cos = max(dot(normalize(lightDirection), normalize(spotDirection)), 0.0);
+        float cos = dot(normalize(lightDirection), normalize(spotDirection));
         float angle = acos(cos);
-        color_spot = angle < radians(20.0) ? texture(tex, texcoord) * cos : color_spot;
+        color_spot = cos > 0.0 && angle < radians(20.0) ? texture(tex, texcoord) * vec4(1, 1, 0.56, 1) : color_spot;    // TODO: angle
     }
 
     color += color_dir;
