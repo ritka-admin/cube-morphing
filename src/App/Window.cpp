@@ -17,17 +17,6 @@
 
 #include "Window.h"
 
-namespace
-{
-
-//constexpr std::array<GLfloat, 21u> vertices = {
-//	0.0f, 0.707f, 1.f, 0.f, 0.f, 0.0f, 0.0f,
-//	-0.5f, -0.5f, 0.f, 1.f, 0.f, 0.5f, 1.0f,
-//	0.5f, -0.5f, 0.f, 0.f, 1.f, 1.0f, 0.0f,
-//};
-//constexpr std::array<GLuint, 3u> indices = {0, 1, 2};
-
-}// namespace
 
 Window::Window() noexcept
 {
@@ -106,24 +95,12 @@ void Window::onInit()
 	vao_.create();
 	vao_.bind();
 
-	// Create VBO
-//	vbo_.create();
-//	vbo_.bind();
-//	vbo_.setUsagePattern(QOpenGLBuffer::StaticDraw);
-//	vbo_.allocate(vertices.data(), static_cast<int>(vertices.size() * sizeof(GLfloat)));
-
 	// ----------------------------------------------------------------
 
 	loadModel("Models/vert_cube.glb");
 	vbos = bindModel();
 
 	// ---------------------------------------------
-
-	// Create IBO
-//	ibo_.create();
-//	ibo_.bind();
-//	ibo_.setUsagePattern(QOpenGLBuffer::StaticDraw);
-//	ibo_.allocate(indices.data(), static_cast<int>(indices.size() * sizeof(GLuint)));
 
 	texture_ = std::make_unique<QOpenGLTexture>(QImage(":/Textures/oxy.png"));
 	texture_->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
@@ -132,17 +109,6 @@ void Window::onInit()
 	// Bind attributes
 	program_->bind();
 
-//	program_->enableAttributeArray(0);
-//	program_->setAttributeBuffer(0, GL_FLOAT, 0, 2, static_cast<int>(7 * sizeof(GLfloat)));
-//
-//	program_->enableAttributeArray(1);
-//	program_->setAttributeBuffer(1, GL_FLOAT, static_cast<int>(2 * sizeof(GLfloat)), 3,
-//								 static_cast<int>(7 * sizeof(GLfloat)));
-//
-//	program_->enableAttributeArray(2);
-//	program_->setAttributeBuffer(2, GL_FLOAT, static_cast<int>(5 * sizeof(GLfloat)), 2,
-//								 static_cast<int>(7 * sizeof(GLfloat)));
-	// Bind attributes
 
 	modelUniform_ = program_->uniformLocation("ModelMat");
 	viewUniform_ = program_-> uniformLocation("ViewMat");
@@ -160,9 +126,6 @@ void Window::onInit()
 	program_->release();
 
 	vao_.release();
-
-//	ibo_.release();
-//	vbo_.release();
 
 	// Еnable depth test and face culling
 	glEnable(GL_DEPTH_TEST);
@@ -227,18 +190,7 @@ void Window::onRender()
 }
 
 void Window::onResize(const size_t width, const size_t height)
-{
-//	// Configure viewport
-//	glViewport(0, 0, static_cast<GLint>(width), static_cast<GLint>(height));
-//
-//	// Configure matrix
-//	const auto aspect = static_cast<float>(width) / static_cast<float>(height);
-//	const auto zNear = 0.1f;
-//	const auto zFar = 100.0f;
-//	const auto fov = 60.0f;
-//	projection_.setToIdentity();
-//	projection_.perspective(fov, aspect, zNear, zFar);
-}
+{}
 
 void Window::change_morphing_param(int state) {
 	morphing_param = 100 - state;
@@ -264,7 +216,6 @@ void Window::keyPressEvent(QKeyEvent * got_event) {
 	auto key = got_event->key();
 
 	if (key == Qt::Key_W) {
-//		cameraPos_.z -= cameraSpeed_;
 		cameraPos_ += cameraSpeed_ * cameraFront_; 		// cameraFront --- от камеры к объекту => приближаемся
 	} else if (key == Qt::Key_S) {
 		cameraPos_ -= cameraSpeed_ * cameraFront_;
@@ -411,7 +362,6 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 
 	for (size_t i = 0; i < mesh.primitives.size(); ++i) {
 		tinygltf::Primitive primitive = mesh.primitives[i];
-//		tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
 
 		for (auto &attrib : primitive.attributes) {
 			tinygltf::Accessor accessor = model.accessors[attrib.second];
@@ -447,7 +397,7 @@ void Window::bindMesh(std::map<int, GLuint>& vbos, tinygltf::Mesh &mesh) {
 				std::cout << "vaa missing: " << attrib.first << std::endl;
 		}
 	}
-	// TODO: bind textures: compile to gltf, add, compile back to glb
+	// TODO: add texture binding
 }
 
 void Window::drawMesh(tinygltf::Mesh &mesh) {
@@ -493,8 +443,6 @@ void Window::display() {
 	// calculate model, view, projection separately
 	glm::mat4 rot = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0, 1, 0));
 	model_ = rot * model_;
-	// glm::mat4 trans = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -4));  // reposition model
-	// model_ = trans * model_;
 
 	view_ = glm::lookAt(
 		cameraPos_,                 		// camera in world space

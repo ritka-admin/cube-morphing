@@ -10,8 +10,6 @@ in vec3 spotDirection;
 uniform sampler2D tex;
 uniform bool directional;
 uniform bool spot;
-// uniform vec3 spot_position;
-//uniform vec3 spot_direction; 
 
 out vec4 color;
 
@@ -34,7 +32,7 @@ void main() {
     if (spot) {
         float cos = dot(normalize(lightDirection), normalize(spotDirection));
         float angle = acos(cos);
-        color_spot = cos > 0.0 && angle < radians(20.0) ? texture(tex, texcoord) * vec4(1, 1, 0.56, 1) : color_spot;    // TODO: angle
+        color_spot = cos > 0.0 && angle < radians(20.0) ? texture(tex, texcoord) * vec4(1, 1, 0.56, 1) : color_spot;    // TODO: angle param, angle -cos
     }
 
     color += color_dir;
