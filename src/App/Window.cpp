@@ -509,7 +509,7 @@ void Window::display() {
 
 	// calculate uniforms
 	const auto normal_mv = glm::transpose(glm::inverse(view_ * model_));
-	auto spot_direction = glm::vec3(0, 0, 0) - spotPosition;
+	auto spot_direction = glm::vec3(0, 0, -4) - spotPosition;
 
 	// set uniforms
 	program_->setUniformValue(modelUniform_, QMatrix4x4(glm::value_ptr(model_)).transposed());

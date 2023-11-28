@@ -9,12 +9,16 @@ uniform mat4 ViewMat;
 uniform mat4 ProjMat;
 uniform mat4 normalMV;
 uniform vec3 sun_coord;
+uniform vec3 spot_position;
+uniform vec3 spot_direction;
 uniform int morphing_coef;
 
 out vec3 normal;
 out vec3 position;
 out vec2 texcoord;
 out vec3 sun;
+out vec3 lightDirection;
+out vec3 spotDirection;
 
 
 vec4 spherify(vec4 vertex) {
@@ -45,12 +49,21 @@ vec4 spherify(vec4 vertex) {
 void main() {
     vec4 vertex;
     vertex = vec4(in_vertex, 1);
-	vertex = spherify(vertex);
-    // TODO: correct normals after spherify?
+	vec4 s_vertex = spherify(vertex);
 
-    gl_Position = ProjMat * ViewMat * ModelMat * vertex;
-    normal = normalize(mat3(normalMV) * in_normal);
-    sun = normalize(mat3(ViewMat) * sun_coord);
+    // TODO: why this does not correct normals???
+    vec3 tmp;
+    float cos = dot(normalize(in_normal), normalize(s_vertex.xyz));
+    tmp = in_normal * cos;
+
+    gl_Position = ProjMat * ViewMat * ModelMat * s_vertex;
+    normal = normalize(mat3(normalMV) * tmp);
     position = in_vertex;
     texcoord = in_texcoord;
+
+    // light params
+    sun = normalize(mat3(ViewMat) * sun_coord);
+    mat3 modelView = mat3(ViewMat * ModelMat);
+    lightDirection = modelView * vertex.xyz - modelView * spot_position;
+    spotDirection = modelView * spot_direction;
 }
