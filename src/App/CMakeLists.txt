@@ -3,10 +3,6 @@ set(SRCS
     Window.cpp
     Window.h
 
-    Shaders/diffuse.fs
-    Shaders/diffuse.vs
-    Textures/voronoi.png
-
     resources.qrc
 )
 
@@ -19,4 +15,5 @@ target_link_libraries(demo-app
         Qt5::Widgets
         FGL::Base
         thirdparty::tinygltf
+        thirdparty::glm
 )
