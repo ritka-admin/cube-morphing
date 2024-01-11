@@ -1,13 +1,14 @@
 ![build_cmake_status](https://github.com/sadads1337/mse-gl-hw-template/actions/workflows/build_cmake.yml/badge.svg)
 
-# ITMO MSE OpenGL homework template 2022
+# Morphing
 
-Qt based demo project to demonstrate how to use and implement basic 3D graphics features.
-No optimizations exists. Use only for educational purposes.
+## Walking keys
 
-## Purposes
+- `WASD` &#8212; canonically: forward, left, backward, right
 
-Help students with their submission is the main goal of this repository. Do not use this code in production!!!
+- `V` &#8212; up
+
+- `C` &#8212; down
 
 ## Requirements
 
