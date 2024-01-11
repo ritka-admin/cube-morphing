@@ -1,12 +1,10 @@
 <RCC>
     <qresource prefix="/">
         <file>Models/chess.glb</file>
-        <file>Models/Cube.glb</file>
-        <file>Models/vert_cube.glb</file>
+        <file>Models/oxycube.glb</file>
     </qresource>
     <qresource prefix="/">
         <file>Textures/voronoi.png</file>
-        <file>Textures/Cube_BaseColor.png</file>
         <file>Textures/oxy.png</file>
     </qresource>
     <qresource prefix="/">

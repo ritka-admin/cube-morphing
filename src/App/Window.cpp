@@ -97,7 +97,7 @@ void Window::onInit()
 	vao_.bind();
 
 	// ----------------------------------------------------------------
-	loadModel("../../../src/App/Models/vert_cube.glb");
+	loadModel("Models/oxycube.glb");
 	vbos = bindModel();
 	// ---------------------------------------------
 
